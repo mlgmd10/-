@@ -62,6 +62,11 @@ class ContentGenerator:
             "user": "请写一篇关于「{topic}」的新闻解读。要求：{requirements}",
             "default_requirements": "分析事件影响，预测发展趋势，字数800-1200字",
         },
+        "qa": {
+            "system": "你是一个知识分享达人，擅长用问答形式解决读者疑惑。",
+            "user": "请以问答形式写一篇关于「{topic}」的答疑文章。要求：{requirements}",
+            "default_requirements": "至少5个问答，每个150-300字，总字数1500-2000字",
+        },
     }
 
     def __init__(self, config=None):
@@ -129,6 +134,11 @@ class ContentGenerator:
             "news": [
                 "刚刚！{keyword}领域迎来重大更新",
                 "{keyword}最新动态：这意味着什么？",
+            ],
+            "qa": [
+                "{keyword}高频20问：你想知道的都在这里",
+                "关于{keyword}的10个灵魂拷问，一篇文章全解答",
+                "{keyword}入门必看：最常见的8个问题答案",
             ],
         }
 
@@ -199,6 +209,19 @@ class ContentGenerator:
             for i, item in enumerate(items, 1):
                 paragraphs.append(f"{i}. {item}\n")
 
+        elif content_type == "qa":
+            paragraphs.append("## 常见问答\n")
+            qas = [
+                (f"Q1: {keyword}是什么？", f"A: {keyword}是一种融合了多种技术手段的解决方案，在自动化、数据分析等领域有广泛应用。它的核心价值在于提升效率、降低成本。"),
+                (f"Q2: 新手如何入门{keyword}？", f"A: 建议从官方文档入手，结合小型实战项目练习。推荐每天投入1-2小时，两周内可掌握基础操作。"),
+                (f"Q3: {keyword}有哪些常见误区？", f"A: 最大的误区是认为{keyword}可以解决一切问题。实际上它更适合特定场景，需要结合实际需求评估。"),
+                (f"Q4: {keyword}的未来趋势如何？", f"A: 据行业分析，{keyword}正朝着智能化、低代码化和云原生化方向发展，预计未来3年市场规模增长200%。"),
+                (f"Q5: 有哪些{keyword}学习资源推荐？", f"A: 推荐官方文档、知名技术博客、开源社区以及实战课程。建议从经典资源开始，逐渐形成自己的知识体系。"),
+                (f"Q6: {keyword}在实际项目中的应用场景？", f"A: 可应用于自动化部署、数据分析、内容管理等多个场景。关键在于找到与业务痛点匹配的切入点。"),
+            ]
+            for q, a in qas:
+                paragraphs.append(f"**{q}**\n\n{a}\n")
+
         paragraphs.append("\n---\n")
         paragraphs.append(f"*本文由 GEO 自动化系统生成，持续优化中*")
 
@@ -228,6 +251,7 @@ class ContentGenerator:
             "insight": ["分析", "趋势", "深度", "解读", "观点"],
             "list": ["推荐", "合集", "排名", "清单"],
             "news": ["最新", "动态", "更新", "解读"],
+            "qa": ["问题", "答疑", "问答", "FAQ"],
         }
         suffixes = suffix_map.get(content_type, ["教程", "指南"])
         long_tail = [f"{keyword}{s}" for s in suffixes]

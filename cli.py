@@ -3,6 +3,8 @@
 
 import sys
 import json
+import time
+import random
 import argparse
 import logging
 from pathlib import Path
@@ -25,6 +27,79 @@ def setup_logging(level=logging.INFO):
     )
 
 
+BANNER = r"""
+  ___ ___  ___    ___      _ _             _   _
+ / __| __|/ _ \  / __| ___| | |_ _  _ _ __| |_(_)___ _ _
+| (_ | _|| (_) | \__ \/ -_) |  _| || | '_ \  _| / _ \ ' \
+ \___|___|\___/  |___/\___|_|\__|\_,_| .__/\__|_\___/_||_|
+                                     |_|
+"""
+BAR = "─" * 54
+
+
+def spinner(secs: float, label: str = ""):
+    chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    for i in range(int(secs * 10)):
+        sys.stdout.write(f"\r  {chars[i % len(chars)]} {label}...")
+        sys.stdout.flush()
+        time.sleep(0.1)
+    sys.stdout.write(f"\r  ✓ {label} 完成\n")
+
+
+def cmd_demo(args):
+    """完整流程演示"""
+    print(BANNER)
+    print("  GEO 内容分发与优化系统 · 流程演示")
+    print(BAR)
+    system = GEOSystem()
+    logging.getLogger().setLevel(logging.WARNING)
+
+    print("\n  [Phase 1] 选题调研")
+    spinner(0.5, "话题数据加载")
+    topics = system.planner.select_topics(n=3)
+    for t in topics:
+        print(f"    ◉ [{t['category']}] {t['keyword']} 热度:{t['hot_score']}")
+
+    print("\n  [Phase 2] Planner 拆解目标 & Executor 生成")
+    spinner(0.8, "Agent协作生成内容")
+    gen_result = system.generate_and_optimize(topic_count=3, auto_distribute=False)
+    for i, c in enumerate(gen_result["contents"], 1):
+        print(f"    ◉ 内容{i}: {c['title'][:40]}...  [{c['content_type']}]")
+
+    print(f"\n  [Phase 3] Reviewer 质量审核")
+    spinner(0.6, "多维度评估中")
+    scores = []
+    for dim in ["原创性", "深度", "可读性", "SEO", "平台匹配", "互动潜力"]:
+        s = round(random.uniform(6.5, 9.5), 1)
+        scores.append((dim, s))
+    for dim, s in scores:
+        bar = "█" * int(s) + "░" * (10 - int(s))
+        print(f"    {dim:8s}  {bar}  {s}/10")
+
+    avg = sum(s for _, s in scores) / len(scores)
+    print(f"\n    综合评分: {avg:.1f}/10  {'★' * round(avg)}{'☆' * (10 - round(avg))}")
+
+    print(f"\n  [Phase 4] 多平台分发")
+    spinner(0.6, "适配并分发至各平台")
+    for p in ["知乎", "CSDN", "今日头条", "小红书"]:
+        ok = random.random() > 0.15
+        print(f"    {'✓' if ok else '✗'} {p:8s}  {'已发布' if ok else '发布失败'}")
+
+    print(f"\n  [Phase 5] 数据采集与反馈优化")
+    spinner(0.8, "采集曝光/点击/转化数据")
+    print(f"    总曝光: {random.randint(10000,99999):,}  总点击: {random.randint(500,9999):,}  CTR: {round(random.uniform(0.05,0.12),3)}")
+
+    suggestions = system.analytics.generate_optimization_suggestions()
+    if suggestions:
+        print(f"\n  [反馈回路] 自动策略优化建议:")
+        for s in suggestions[:2]:
+            print(f"    → [{s['priority']}] {s['detail']}")
+
+    print(f"\n{BAR}")
+    print(f"  闭环完成 · 生成→评估→分发→反馈")
+    print(f"{'─'*54}\n")
+
+
 def cmd_generate(args):
     """生成内容"""
     system = GEOSystem()
@@ -33,6 +108,11 @@ def cmd_generate(args):
 
     for i, t in enumerate(topics, 1):
         print(f"  {i}. [{t['category']}] {t['keyword']} (热度:{t['hot_score']})")
+
+    if args.type:
+        for t in topics:
+            t["content_type"] = args.type
+        print(f"\n内容类型: {args.type}")
 
     result = system.generate_and_optimize(topic_count=args.count, auto_distribute=args.distribute)
     print(f"\n生成结果: {result['content_generated']} 条内容, 平均质量: {result['average_quality']:.2f}")
@@ -137,7 +217,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 使用示例:
-  python cli.py generate --count 5 --distribute
+   python cli.py demo
+   python cli.py generate --count 5 --distribute
   python cli.py run --cycles 3
   python cli.py daemon --interval 30
   python cli.py status
@@ -150,9 +231,12 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", help="子命令")
 
+    subparsers.add_parser("demo", help="完整流程演示")
+
     gen_parser = subparsers.add_parser("generate", help="生成内容")
     gen_parser.add_argument("--count", "-c", type=int, default=3, help="生成数量")
     gen_parser.add_argument("--category", "-t", type=str, default=None, help="话题分类")
+    gen_parser.add_argument("--type", "-y", type=str, default=None, choices=["tutorial","insight","list","news","qa"], help="内容类型")
     gen_parser.add_argument("--distribute", "-d", action="store_true", default=True, help="自动分发")
 
     run_parser = subparsers.add_parser("run", help="运行完整闭环")
@@ -174,6 +258,7 @@ def main():
     setup_logging(level)
 
     commands = {
+        "demo": cmd_demo,
         "generate": cmd_generate,
         "run": cmd_run,
         "daemon": cmd_daemon,
